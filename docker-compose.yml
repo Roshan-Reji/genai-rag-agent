@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  rag-api:
+    build: .
+    container_name: genai-rag-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=gpt-3.5-turbo
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - DEBUG=False
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: PostgreSQL for state persistence
+  postgres:
+    image: postgres:15-alpine
+    container_name: genai-postgres
+    environment:
+      - POSTGRES_USER=genai
+      - POSTGRES_PASSWORD=genai_secure_password
+      - POSTGRES_DB=rag_database
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    expose:
+      - 5432
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: genai-network
